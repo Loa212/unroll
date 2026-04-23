@@ -17,12 +17,13 @@ The server listens on `http://localhost:3100` by default. The SQLite cache lives
 Run the same checks CI will run:
 
 ```bash
-bun run ci:check     # biome: lint + format check
-bun run typecheck    # tsc --noEmit
-bun test             # only if tests exist
+bun run format:check   # biome format
+bun run lint:check     # biome lint
+bun run typecheck      # tsc --noEmit
+bun test               # only if tests exist
 ```
 
-CI will block merge on any of these failing. Fix formatting with `bun run format` and lint auto-fixes with `bun run lint`.
+CI will block merge on any of these failing. Fix formatting with `bun run format` and lint auto-fixes with `bun run lint`. `bun run check` runs all Biome steps at once (format + lint + import organization).
 
 ## Scope
 

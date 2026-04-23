@@ -34,8 +34,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint + format check
-        run: bun run ci:check
+      - name: Format check
+        run: bun run format:check
+
+      - name: Lint
+        run: bun run lint:check
 
       - name: Typecheck
         run: bun run typecheck

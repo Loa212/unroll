@@ -1,104 +1,91 @@
 import { createEndpoint, createRouter } from "better-call";
 import { z } from "zod";
-import { type Todo, todoDb } from "./database";
+import { FxTwitterError } from "./fxtwitter";
+import { singleTweetToMarkdown, threadToMarkdown } from "./markdown";
+import { rateLimitMiddleware } from "./rate-limit";
+import { fetchSingle, unrollThread } from "./unroll";
 
-export const createTodo = createEndpoint(
-	"/todo",
-	{
-		method: "POST",
-		body: z.object({
-			title: z.string(),
-			description: z.string().optional(),
-			done: z.boolean().optional().default(false),
-		}),
-	},
-	async (ctx): Promise<Todo> => {
-		return await todoDb.createTodo(
-			ctx.body.title,
-			ctx.body.description,
-			ctx.body.done,
-		);
+const startedAt = Date.now();
+
+const formatQuery = z.object({
+	url: z.string().min(1),
+	format: z.enum(["markdown", "json"]).optional().default("markdown"),
+});
+
+export const health = createEndpoint(
+	"/health",
+	{ method: "GET" },
+	async () => {
+		return { ok: true, uptime: (Date.now() - startedAt) / 1000 };
 	},
 );
 
-export const getTodos = createEndpoint(
-	"/todos",
+export const thread = createEndpoint(
+	"/thread",
 	{
 		method: "GET",
-		query: z.object({ filter: z.string().optional() }),
+		query: formatQuery,
+		use: [rateLimitMiddleware],
 	},
-	async (ctx): Promise<Todo[]> => {
-		return await todoDb.getTodos(ctx.query.filter);
+	async (ctx) => {
+		try {
+			const tweets = await unrollThread(ctx.query.url);
+			const author = tweets[0]?.author;
+			if (ctx.query.format === "json") {
+				return { tweets, count: tweets.length, author };
+			}
+			return {
+				content: threadToMarkdown(tweets),
+				tweetCount: tweets.length,
+				author,
+			};
+		} catch (err) {
+			if (err instanceof FxTwitterError) {
+				throw ctx.error(err.status === 404 ? "NOT_FOUND" : "BAD_GATEWAY", {
+					error: err.message,
+				});
+			}
+			if (err instanceof Error && err.message === "invalid_tweet_url") {
+				throw ctx.error("BAD_REQUEST", { error: "invalid_tweet_url" });
+			}
+			throw err;
+		}
 	},
 );
 
-export const getTodo = createEndpoint(
-	"/todo",
+export const tweet = createEndpoint(
+	"/tweet",
 	{
 		method: "GET",
-		query: z.object({
-			id: z.string(),
-		}),
+		query: formatQuery,
+		use: [rateLimitMiddleware],
 	},
-	async (ctx): Promise<Todo> => {
-		const todo = await todoDb.getTodoById(ctx.query.id);
-		if (!todo) {
-			throw new Error("Todo not found");
+	async (ctx) => {
+		try {
+			const t = await fetchSingle(ctx.query.url);
+			if (ctx.query.format === "json") {
+				return { tweets: [t], count: 1, author: t.author };
+			}
+			return {
+				content: singleTweetToMarkdown(t),
+				tweetCount: 1,
+				author: t.author,
+			};
+		} catch (err) {
+			if (err instanceof FxTwitterError) {
+				throw ctx.error(err.status === 404 ? "NOT_FOUND" : "BAD_GATEWAY", {
+					error: err.message,
+				});
+			}
+			if (err instanceof Error && err.message === "invalid_tweet_url") {
+				throw ctx.error("BAD_REQUEST", { error: "invalid_tweet_url" });
+			}
+			throw err;
 		}
-		return todo;
-	},
-);
-
-export const deleteTodo = createEndpoint(
-	"/todo",
-	{
-		method: "DELETE",
-		query: z.object({
-			id: z.string(),
-		}),
-	},
-	async (ctx): Promise<{ success: boolean }> => {
-		const deleted = await todoDb.deleteTodo(ctx.query.id);
-		if (!deleted) {
-			throw new Error("Todo not found");
-		}
-		return { success: true };
-	},
-);
-
-export const updateTodo = createEndpoint(
-	"/todo",
-	{
-		method: "PUT",
-		body: z.object({
-			id: z.string(),
-			title: z.string().min(2).max(100).optional(),
-			description: z.string().min(5).max(500).optional(),
-			done: z.boolean().optional(),
-		}),
-	},
-	async (ctx): Promise<Todo> => {
-		const updatedTodo = await todoDb.updateTodo(ctx.body.id, {
-			title: ctx.body.title,
-			description: ctx.body.description,
-			done: ctx.body.done,
-		});
-
-		if (!updatedTodo) {
-			throw new Error("Todo not found");
-		}
-
-		return updatedTodo;
 	},
 );
 
 export const router = createRouter(
-	{
-		createTodo,
-		getTodos,
-		getTodo,
-		updateTodo,
-		deleteTodo,
-	},
+	{ health, thread, tweet },
 	{ basePath: "/api" },
 );

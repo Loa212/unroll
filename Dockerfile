@@ -7,6 +7,10 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
+RUN mkdir -p /app/data
+
 ENV NODE_ENV=production
+ENV SQLITE_PATH=/app/data/cache.db
 EXPOSE 3000
+VOLUME ["/app/data"]
 CMD ["bun", "run", "start"]

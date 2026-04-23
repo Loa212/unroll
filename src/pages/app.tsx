@@ -46,9 +46,17 @@ function RateIndicator({ info }: { info: RateInfo | null }) {
 
 function CopyIcon() {
 	return (
-		<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-			stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-			aria-hidden="true" focusable="false">
+		<svg
+			class="icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+			focusable="false"
+		>
 			<rect x="9" y="9" width="13" height="13" rx="2" />
 			<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
 		</svg>
@@ -57,9 +65,17 @@ function CopyIcon() {
 
 function DownloadIcon() {
 	return (
-		<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-			stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-			aria-hidden="true" focusable="false">
+		<svg
+			class="icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			aria-hidden="true"
+			focusable="false"
+		>
 			<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
 			<polyline points="7 10 12 15 17 10" />
 			<line x1="12" y1="15" x2="12" y2="3" />
@@ -69,8 +85,13 @@ function DownloadIcon() {
 
 function GithubIcon() {
 	return (
-		<svg class="icon" viewBox="0 0 24 24" fill="currentColor"
-			aria-hidden="true" focusable="false">
+		<svg
+			class="icon"
+			viewBox="0 0 24 24"
+			fill="currentColor"
+			aria-hidden="true"
+			focusable="false"
+		>
 			<path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.38 7.86 10.9.58.1.78-.25.78-.56v-2.1c-3.2.7-3.87-1.37-3.87-1.37-.53-1.35-1.3-1.7-1.3-1.7-1.06-.73.08-.72.08-.72 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.1-.75.4-1.27.74-1.56-2.55-.3-5.24-1.28-5.24-5.68 0-1.26.45-2.29 1.2-3.1-.12-.3-.52-1.48.11-3.08 0 0 .97-.31 3.18 1.18.92-.26 1.9-.39 2.88-.39s1.96.13 2.88.39c2.21-1.49 3.18-1.18 3.18-1.18.63 1.6.23 2.78.11 3.08.75.81 1.2 1.84 1.2 3.1 0 4.42-2.69 5.38-5.25 5.67.41.36.77 1.06.77 2.14v3.18c0 .31.2.67.79.55C20.21 21.37 23.5 17.08 23.5 12 23.5 5.73 18.27.5 12 .5z" />
 		</svg>
 	);
@@ -102,7 +123,10 @@ function App() {
 		setCopied(false);
 
 		try {
-			const params = new URLSearchParams({ url: trimmed, format: activeFormat });
+			const params = new URLSearchParams({
+				url: trimmed,
+				format: activeFormat,
+			});
 			const res = await fetch(`/api/thread?${params.toString()}`, {
 				headers: { Accept: "application/json" },
 			});
@@ -167,9 +191,7 @@ function App() {
 		if (!outputText) return;
 		const ext = format === "markdown" ? "md" : "json";
 		const mime = format === "markdown" ? "text/markdown" : "application/json";
-		const fileName = handle
-			? `thread-${handle}.${ext}`
-			: `thread.${ext}`;
+		const fileName = handle ? `thread-${handle}.${ext}` : `thread.${ext}`;
 		const blob = new Blob([outputText], { type: mime });
 		const href = URL.createObjectURL(blob);
 		const a = document.createElement("a");
@@ -204,8 +226,13 @@ function App() {
 				<p>
 					Paste any X/Twitter URL. We walk the reply chain, convert the whole
 					thread to clean markdown, and hand it back. Powered by the public{" "}
-					<a href="https://github.com/FxEmbed/FxEmbed" target="_blank"
-						rel="noreferrer">FxTwitter</a>{" "}
+					<a
+						href="https://github.com/FxEmbed/FxEmbed"
+						target="_blank"
+						rel="noreferrer"
+					>
+						FxTwitter
+					</a>{" "}
 					API — no login, no key.
 				</p>
 				<div class="stats">
@@ -236,8 +263,8 @@ function App() {
 				or prepend{" "}
 				<code>
 					{window.location.host}/<span class="accent-path">any-tweet-url</span>
-				</code>
-				{" "}to any tweet URL in your browser
+				</code>{" "}
+				to any tweet URL in your browser
 			</div>
 
 			{error && <div class="error">{error}</div>}
@@ -297,8 +324,13 @@ function App() {
 
 			<footer>
 				Built on{" "}
-				<a href="https://github.com/FxEmbed/FxEmbed" target="_blank"
-					rel="noreferrer">FxTwitter</a>
+				<a
+					href="https://github.com/FxEmbed/FxEmbed"
+					target="_blank"
+					rel="noreferrer"
+				>
+					FxTwitter
+				</a>
 				. No credentials stored. Tweet data is immutable and cached locally.
 			</footer>
 		</div>

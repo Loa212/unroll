@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
-import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { env } from "./env";
 import type { FxTwitterResponse } from "./fxtwitter";
 

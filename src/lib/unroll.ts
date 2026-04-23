@@ -1,5 +1,5 @@
 import { getCached, setCached } from "./cache";
-import { fetchTweet, type FxTwitterTweet } from "./fxtwitter";
+import { type FxTwitterTweet, fetchTweet } from "./fxtwitter";
 import { extractTweetId } from "./url";
 
 async function getTweetCached(id: string): Promise<FxTwitterTweet> {
@@ -10,9 +10,7 @@ async function getTweetCached(id: string): Promise<FxTwitterTweet> {
 	return fresh.tweet;
 }
 
-export async function unrollThread(
-	url: string,
-): Promise<FxTwitterTweet[]> {
+export async function unrollThread(url: string): Promise<FxTwitterTweet[]> {
 	const id = extractTweetId(url);
 	if (!id) throw new Error("invalid_tweet_url");
 

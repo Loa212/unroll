@@ -1,0 +1,12 @@
+node_modules
+.git
+.vscode
+.env
+.env.*
+.DS_Store
+*.sqlite
+bunfig.toml
+biome.json
+coverage
+out
+dist

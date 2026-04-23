@@ -1,0 +1,28 @@
+{
+  "[handlebars]": {
+    "editor.formatOnSave": false
+  },
+  "editor.rulers": [
+    80
+  ],
+  "[markdown]": {
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "other": "on",
+      "strings": "off"
+    }
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "biomejs.biome",
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "[html]": {
+    "editor.suggest.insertMode": "replace"
+  }
+}

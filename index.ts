@@ -1,11 +1,7 @@
 import { env } from "./src/lib/env";
 import { FxTwitterError } from "./src/lib/fxtwitter";
 import { threadToMarkdown } from "./src/lib/markdown";
-import {
-	clientIp,
-	rateLimit,
-	rateLimitHeaders,
-} from "./src/lib/rate-limit";
+import { clientIp, rateLimit, rateLimitHeaders } from "./src/lib/rate-limit";
 import { router } from "./src/lib/server";
 import { unrollThread } from "./src/lib/unroll";
 import homepage from "./src/pages/index.html";

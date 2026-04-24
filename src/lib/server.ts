@@ -12,13 +12,9 @@ const formatQuery = z.object({
 	format: z.enum(["markdown", "json"]).optional().default("markdown"),
 });
 
-export const health = createEndpoint(
-	"/health",
-	{ method: "GET" },
-	async () => {
-		return { ok: true, uptime: (Date.now() - startedAt) / 1000 };
-	},
-);
+export const health = createEndpoint("/health", { method: "GET" }, async () => {
+	return { ok: true, uptime: (Date.now() - startedAt) / 1000 };
+});
 
 export const thread = createEndpoint(
 	"/thread",

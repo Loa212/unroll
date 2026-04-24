@@ -109,13 +109,28 @@ function App() {
 
 	useEffect(() => {
 		inputRef.current?.focus();
+		const q = new URLSearchParams(window.location.search).get("q");
+		if (q?.trim()) {
+			setUrl(q);
+			void submit(undefined, undefined, q);
+		}
 	}, []);
 
-	const submit = async (e?: Event, overrideFormat?: Format) => {
+	const submit = async (
+		e?: Event,
+		overrideFormat?: Format,
+		overrideUrl?: string,
+	) => {
 		e?.preventDefault();
-		const trimmed = url.trim();
+		const trimmed = (overrideUrl ?? url).trim();
 		if (!trimmed) return;
 		const activeFormat = overrideFormat ?? format;
+
+		// Reflect the search in the URL so results are shareable / bookmarkable.
+		const qs = new URLSearchParams({ q: trimmed }).toString();
+		if (window.location.search !== `?${qs}`) {
+			window.history.replaceState(null, "", `/?${qs}`);
+		}
 
 		setLoading(true);
 		setError(null);

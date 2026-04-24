@@ -8,6 +8,7 @@ import { handleMcp } from "./src/mcp/server";
 import homepage from "./src/pages/index.html";
 
 const ogImage = Bun.file(new URL("./src/pages/og.png", import.meta.url));
+const llmsTxt = Bun.file(new URL("./src/pages/llms.txt", import.meta.url));
 
 async function handlePrepend(request: Request, source: string) {
 	const ip = clientIp(request);
@@ -58,6 +59,12 @@ const server = Bun.serve({
 			headers: {
 				"Content-Type": "image/png",
 				"Cache-Control": "public, max-age=86400",
+			},
+		}),
+		"/llms.txt": new Response(llmsTxt, {
+			headers: {
+				"Content-Type": "text/plain; charset=utf-8",
+				"Cache-Control": "public, max-age=3600",
 			},
 		}),
 		"/api/*": router.handler,

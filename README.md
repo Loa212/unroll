@@ -46,7 +46,21 @@ Markdown responses come back wrapped as `{ content, tweetCount, author }`. JSON 
 
 ### 4. MCP server
 
-Coming soon — tracked in [#2](https://github.com/Loa212/unroll/issues/2). Will expose the same thread-to-markdown tool to any MCP-compatible agent.
+unroll speaks [MCP](https://modelcontextprotocol.io) over streamable HTTP at [`/mcp`](https://unroll.loa212.com/mcp). Any MCP-compatible client (Claude Desktop, Claude Code, Cursor, Cline, Zed, …) can call `unroll_thread` or `fetch_tweet` without a local install.
+
+Claude Desktop config snippet:
+
+```json
+{
+  "mcpServers": {
+    "unroll": {
+      "url": "https://unroll.loa212.com/mcp"
+    }
+  }
+}
+```
+
+Full setup instructions (Claude Code, Cursor, self-hosting) live in [`src/mcp/README.md`](./src/mcp/README.md).
 
 ---
 

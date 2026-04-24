@@ -4,6 +4,7 @@ import { threadToMarkdown } from "./src/lib/markdown";
 import { clientIp, rateLimit, rateLimitHeaders } from "./src/lib/rate-limit";
 import { router } from "./src/lib/server";
 import { unrollThread } from "./src/lib/unroll";
+import { handleMcp } from "./src/mcp/server";
 import homepage from "./src/pages/index.html";
 
 async function handlePrepend(request: Request, source: string) {
@@ -52,6 +53,7 @@ const server = Bun.serve({
 	routes: {
 		"/": homepage,
 		"/api/*": router.handler,
+		"/mcp": handleMcp,
 	},
 	async fetch(request) {
 		const url = new URL(request.url);

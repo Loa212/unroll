@@ -7,6 +7,8 @@ import { unrollThread } from "./src/lib/unroll";
 import { handleMcp } from "./src/mcp/server";
 import homepage from "./src/pages/index.html";
 
+const ogImage = Bun.file(new URL("./src/pages/og.png", import.meta.url));
+
 async function handlePrepend(request: Request, source: string) {
 	const ip = clientIp(request);
 	const result = rateLimit(ip);
@@ -52,6 +54,12 @@ const server = Bun.serve({
 	port: env.PORT,
 	routes: {
 		"/": homepage,
+		"/og.png": new Response(ogImage, {
+			headers: {
+				"Content-Type": "image/png",
+				"Cache-Control": "public, max-age=86400",
+			},
+		}),
 		"/api/*": router.handler,
 		"/mcp": handleMcp,
 	},

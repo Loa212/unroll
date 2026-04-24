@@ -62,6 +62,10 @@ Claude Desktop config snippet:
 
 Full setup instructions (Claude Code, Cursor, self-hosting) live in [`src/mcp/README.md`](./src/mcp/README.md).
 
+### Agent skill
+
+If your agent supports [Agent Skills](https://github.com/agent-skills/spec), the [`skill/`](./skill) directory packages unroll as a drop-in skill — point your client at `skill/SKILL.md` and it'll know when and how to call the MCP server (or the HTTP fallback).
+
 ---
 
 ## Rate limits

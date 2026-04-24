@@ -1,0 +1,26 @@
+# unroll
+
+> Convert X/Twitter threads to clean markdown. No login, no API key, no tracking.
+
+Powered by the public FxTwitter API. Built on Bun, open source (MIT).
+
+## Usage
+
+- Web UI: https://unroll.loa212.com/
+- Prepend pattern: https://unroll.loa212.com/<any-tweet-url> (returns raw markdown)
+- JSON API: GET https://unroll.loa212.com/api/thread?url=<tweet-url>&format=json
+- Single tweet: GET https://unroll.loa212.com/api/tweet?url=<tweet-url>&format=json
+- Health check: GET https://unroll.loa212.com/api/health
+- MCP server: https://unroll.loa212.com/mcp (streamable HTTP; tools: unroll_thread, fetch_tweet)
+
+## Rate limits
+
+60 requests per hour per IP. Responses include RateLimit-Limit, RateLimit-Remaining, and RateLimit-Reset headers. Exceeding returns 429 with `{ "error": "rate_limited", "resetAt": <unix-ms> }`.
+
+## Self-hosting
+
+One `bun install` away. See the README for Docker and configuration details.
+
+## Source
+
+https://github.com/Loa212/unroll

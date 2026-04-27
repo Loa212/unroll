@@ -1,16 +1,20 @@
 import { env } from "./src/lib/env";
 import { FxTwitterError } from "./src/lib/fxtwitter";
-import { threadToMarkdown } from "./src/lib/markdown";
+import { commentsToMarkdown, threadToMarkdown } from "./src/lib/markdown";
 import { clientIp, rateLimit, rateLimitHeaders } from "./src/lib/rate-limit";
 import { router } from "./src/lib/server";
-import { unrollThread } from "./src/lib/unroll";
+import { fetchComments, unrollThread } from "./src/lib/unroll";
 import { handleMcp } from "./src/mcp/server";
 import homepage from "./src/pages/index.html";
 
 const ogImage = Bun.file(new URL("./src/pages/og.png", import.meta.url));
 const llmsTxt = Bun.file(new URL("./src/pages/llms.txt", import.meta.url));
 
-async function handlePrepend(request: Request, source: string) {
+async function handlePrepend(
+	request: Request,
+	source: string,
+	mode: "thread" | "comments" = "thread",
+) {
 	const ip = clientIp(request);
 	const result = rateLimit(ip);
 	const headers = {
@@ -29,6 +33,13 @@ async function handlePrepend(request: Request, source: string) {
 	}
 
 	try {
+		if (mode === "comments") {
+			const { parent, replies } = await fetchComments(source);
+			return new Response(commentsToMarkdown(parent, replies), {
+				status: 200,
+				headers,
+			});
+		}
 		const tweets = await unrollThread(source);
 		return new Response(threadToMarkdown(tweets), { status: 200, headers });
 	} catch (err) {
@@ -73,6 +84,11 @@ const server = Bun.serve({
 	async fetch(request) {
 		const url = new URL(request.url);
 		const pathname = url.pathname;
+
+		if (pathname.startsWith("/comments/http")) {
+			const source = `${pathname.slice("/comments/".length)}${url.search}`;
+			return handlePrepend(request, source, "comments");
+		}
 
 		if (pathname.startsWith("/http")) {
 			// Reconstruct the source URL after the leading `/`. We keep the raw

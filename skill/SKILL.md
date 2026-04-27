@@ -25,8 +25,9 @@ If an MCP client is connected to `https://unroll.loa212.com/mcp`, call one of:
 
 - `unroll_thread({ url })` — walks the reply chain upward from any tweet in the thread and returns the whole thread in order.
 - `fetch_tweet({ url })` — single tweet only, no walking.
+- `fetch_comments({ url, cursor? })` — top replies to a tweet (ranked by likes), parent included. Pass `cursor` from the previous response's `<!-- next_cursor: ... -->` footer to load the next page.
 
-Both return markdown by default and include the author handle.
+All return markdown by default and include the author handle. Prefer `fetch_comments` for "what are people saying"; prefer `unroll_thread` for the author's own follow-ups.
 
 ### Fallback: HTTP
 
@@ -48,6 +49,13 @@ Single tweet:
 
 ```bash
 curl -s 'https://unroll.loa212.com/api/tweet?url=<tweet-url>&format=json'
+```
+
+Comments (top replies, first page only via prepend; pass `cursor` to the API to paginate):
+
+```bash
+curl -s 'https://unroll.loa212.com/comments/https://x.com/jack/status/20'
+curl -s 'https://unroll.loa212.com/api/comments?url=<tweet-url>&format=json'
 ```
 
 ## Rate limits

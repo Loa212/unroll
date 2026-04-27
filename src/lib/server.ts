@@ -1,15 +1,25 @@
 import { createEndpoint, createRouter } from "better-call";
 import { z } from "zod";
 import { FxTwitterError } from "./fxtwitter";
-import { singleTweetToMarkdown, threadToMarkdown } from "./markdown";
+import {
+	commentsToMarkdown,
+	singleTweetToMarkdown,
+	threadToMarkdown,
+} from "./markdown";
 import { rateLimitMiddleware } from "./rate-limit";
-import { fetchSingle, unrollThread } from "./unroll";
+import { fetchComments, fetchSingle, unrollThread } from "./unroll";
 
 const startedAt = Date.now();
 
 const formatQuery = z.object({
 	url: z.string().min(1),
 	format: z.enum(["markdown", "json"]).optional().default("markdown"),
+});
+
+const commentsQuery = z.object({
+	url: z.string().min(1),
+	format: z.enum(["markdown", "json"]).optional().default("markdown"),
+	cursor: z.string().optional(),
 });
 
 export const health = createEndpoint("/health", { method: "GET" }, async () => {
@@ -81,7 +91,43 @@ export const tweet = createEndpoint(
 	},
 );
 
+export const comments = createEndpoint(
+	"/comments",
+	{
+		method: "GET",
+		query: commentsQuery,
+		use: [rateLimitMiddleware],
+	},
+	async (ctx) => {
+		try {
+			const { parent, replies, cursor } = await fetchComments(
+				ctx.query.url,
+				ctx.query.cursor,
+			);
+			if (ctx.query.format === "json") {
+				return { parent, replies, count: replies.length, cursor };
+			}
+			return {
+				content: commentsToMarkdown(parent, replies),
+				replyCount: replies.length,
+				parent,
+				cursor,
+			};
+		} catch (err) {
+			if (err instanceof FxTwitterError) {
+				throw ctx.error(err.status === 404 ? "NOT_FOUND" : "BAD_GATEWAY", {
+					error: err.message,
+				});
+			}
+			if (err instanceof Error && err.message === "invalid_tweet_url") {
+				throw ctx.error("BAD_REQUEST", { error: "invalid_tweet_url" });
+			}
+			throw err;
+		}
+	},
+);
+
 export const router = createRouter(
-	{ health, thread, tweet },
+	{ health, thread, tweet, comments },
 	{ basePath: "/api" },
 );

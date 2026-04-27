@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { FxTwitterTweet } from "../lib/fxtwitter";
-import { threadToMarkdown } from "../lib/markdown";
+import { commentsToMarkdown, threadToMarkdown } from "../lib/markdown";
 
 type RateInfo = {
 	limit: number;
@@ -15,6 +15,12 @@ type ThreadResult = {
 	tweets: FxTwitterTweet[];
 	count: number;
 	author?: { screen_name?: string; name?: string };
+};
+
+type CommentsState = {
+	parent: FxTwitterTweet;
+	replies: FxTwitterTweet[];
+	cursor: string | null;
 };
 
 function useRateInfo() {
@@ -104,6 +110,14 @@ function App() {
 	const [result, setResult] = useState<ThreadResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [commentsResult, setCommentsResult] = useState<CommentsState | null>(
+		null,
+	);
+	const [commentsLoading, setCommentsLoading] = useState(false);
+	const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
+	const [commentsError, setCommentsError] = useState<string | null>(null);
+	const [commentsFormat, setCommentsFormat] = useState<Format>("markdown");
+	const [commentsCopied, setCommentsCopied] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const { info: rate, captureFromHeaders } = useRateInfo();
 
@@ -131,6 +145,9 @@ function App() {
 		setError(null);
 		setResult(null);
 		setCopied(false);
+		setCommentsResult(null);
+		setCommentsError(null);
+		setCommentsCopied(false);
 
 		try {
 			const params = new URLSearchParams({
@@ -203,6 +220,121 @@ function App() {
 		const mime = format === "markdown" ? "text/markdown" : "application/json";
 		const fileName = handle ? `thread-${handle}.${ext}` : `thread.${ext}`;
 		const blob = new Blob([outputText], { type: mime });
+		const href = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = href;
+		a.download = fileName;
+		a.click();
+		URL.revokeObjectURL(href);
+	};
+
+	const loadComments = async (cursor?: string) => {
+		const trimmed = url.trim();
+		if (!trimmed) return;
+		if (cursor) setCommentsLoadingMore(true);
+		else setCommentsLoading(true);
+		setCommentsError(null);
+		try {
+			const params = new URLSearchParams({ url: trimmed, format: "json" });
+			if (cursor) params.set("cursor", cursor);
+			const res = await fetch(`/api/comments?${params.toString()}`, {
+				headers: { Accept: "application/json" },
+			});
+			captureFromHeaders(res.headers);
+
+			if (res.status === 429) {
+				setCommentsError(
+					"Rate limited. Try again in a bit, or self-host for your own limits.",
+				);
+				return;
+			}
+			if (!res.ok) {
+				let message = `Request failed (${res.status})`;
+				try {
+					const body = (await res.json()) as { error?: string };
+					if (body.error === "invalid_tweet_url") {
+						message = "That doesn't look like a tweet URL.";
+					} else if (res.status === 404) {
+						message = "Tweet not found (or the account is protected).";
+					} else if (body.error) {
+						message = body.error;
+					}
+				} catch {
+					/* non-JSON body */
+				}
+				setCommentsError(message);
+				return;
+			}
+
+			const body = (await res.json()) as {
+				parent: FxTwitterTweet;
+				replies: FxTwitterTweet[];
+				count: number;
+				cursor: string | null;
+			};
+			setCommentsResult((prev) =>
+				prev && cursor
+					? {
+							parent: prev.parent,
+							replies: [...prev.replies, ...body.replies],
+							cursor: body.cursor,
+						}
+					: {
+							parent: body.parent,
+							replies: body.replies,
+							cursor: body.cursor,
+						},
+			);
+			setCommentsCopied(false);
+		} catch (err) {
+			setCommentsError(
+				err instanceof Error ? err.message : "Network error. Try again.",
+			);
+		} finally {
+			setCommentsLoading(false);
+			setCommentsLoadingMore(false);
+		}
+	};
+
+	const commentsOutputText = (() => {
+		if (!commentsResult) return "";
+		if (commentsFormat === "markdown")
+			return commentsToMarkdown(commentsResult.parent, commentsResult.replies);
+		return JSON.stringify(
+			{
+				parent: commentsResult.parent,
+				replies: commentsResult.replies,
+				count: commentsResult.replies.length,
+				cursor: commentsResult.cursor,
+			},
+			null,
+			2,
+		);
+	})();
+
+	const commentsHandle = commentsResult?.parent.author.screen_name;
+	const replyCount = commentsResult?.replies.length ?? 0;
+
+	const copyComments = async () => {
+		if (!commentsOutputText) return;
+		try {
+			await navigator.clipboard.writeText(commentsOutputText);
+			setCommentsCopied(true);
+			setTimeout(() => setCommentsCopied(false), 1500);
+		} catch {
+			setCommentsError("Copy failed — your browser blocked clipboard access.");
+		}
+	};
+
+	const downloadComments = () => {
+		if (!commentsOutputText) return;
+		const ext = commentsFormat === "markdown" ? "md" : "json";
+		const mime =
+			commentsFormat === "markdown" ? "text/markdown" : "application/json";
+		const fileName = commentsHandle
+			? `comments-${commentsHandle}.${ext}`
+			: `comments.${ext}`;
+		const blob = new Blob([commentsOutputText], { type: mime });
 		const href = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		a.href = href;
@@ -317,6 +449,87 @@ function App() {
 						</div>
 					</div>
 					<pre class="output">{outputText}</pre>
+
+					{!commentsResult && !commentsLoading && !commentsError && (
+						<div
+							class="result-actions"
+							style={{ justifyContent: "center", marginTop: 16 }}
+						>
+							<button type="button" onClick={() => loadComments()}>
+								Load comments
+							</button>
+						</div>
+					)}
+					{commentsLoading && (
+						<div style={{ textAlign: "center", marginTop: 16 }}>
+							<span class="spinner" />
+						</div>
+					)}
+					{commentsError && <div class="error">{commentsError}</div>}
+					{commentsResult && (
+						<div class="result" style={{ marginTop: 16 }}>
+							<div class="result-header">
+								<div class="result-meta">
+									{commentsHandle && (
+										<span>
+											Replies to <strong>@{commentsHandle}</strong> ·{" "}
+											{replyCount} repl{replyCount === 1 ? "y" : "ies"}
+										</span>
+									)}
+								</div>
+								<div class="result-actions">
+									<div class="segmented">
+										<button
+											type="button"
+											class={commentsFormat === "markdown" ? "active" : ""}
+											onClick={() => setCommentsFormat("markdown")}
+										>
+											Markdown
+										</button>
+										<button
+											type="button"
+											class={commentsFormat === "json" ? "active" : ""}
+											onClick={() => setCommentsFormat("json")}
+										>
+											JSON
+										</button>
+									</div>
+									<button class="ghost" type="button" onClick={copyComments}>
+										<CopyIcon /> {commentsCopied ? "Copied" : "Copy"}
+									</button>
+									<button
+										class="ghost"
+										type="button"
+										onClick={downloadComments}
+									>
+										<DownloadIcon /> Download
+									</button>
+								</div>
+							</div>
+							<pre class="output">{commentsOutputText}</pre>
+							{commentsResult.cursor && (
+								<div
+									class="result-actions"
+									style={{ justifyContent: "center", marginTop: 12 }}
+								>
+									<button
+										type="button"
+										disabled={commentsLoadingMore}
+										onClick={() =>
+											commentsResult.cursor &&
+											loadComments(commentsResult.cursor)
+										}
+									>
+										{commentsLoadingMore ? (
+											<span class="spinner" />
+										) : (
+											"Load more"
+										)}
+									</button>
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			)}
 

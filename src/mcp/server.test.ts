@@ -12,7 +12,7 @@ function mcpRequest(body: unknown): Request {
 	});
 }
 
-test("tools/list exposes unroll_thread and fetch_tweet", async () => {
+test("tools/list exposes unroll_thread, fetch_tweet, and fetch_comments", async () => {
 	const res = await handleMcp(
 		mcpRequest({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
 	);
@@ -22,7 +22,7 @@ test("tools/list exposes unroll_thread and fetch_tweet", async () => {
 		result: { tools: Array<{ name: string; description: string }> };
 	};
 	const names = payload.result.tools.map((t) => t.name).sort();
-	expect(names).toEqual(["fetch_tweet", "unroll_thread"]);
+	expect(names).toEqual(["fetch_comments", "fetch_tweet", "unroll_thread"]);
 
 	for (const tool of payload.result.tools) {
 		expect(tool.description.length).toBeGreaterThan(20);

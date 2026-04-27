@@ -507,27 +507,26 @@ function App() {
 								</div>
 							</div>
 							<pre class="output">{commentsOutputText}</pre>
-							{commentsResult.cursor && (
-								<div
-									class="result-actions"
-									style={{ justifyContent: "center", marginTop: 12 }}
+							<div
+								class="result-actions"
+								style={{ justifyContent: "center", marginTop: 12 }}
+							>
+								<button
+									type="button"
+									disabled={commentsLoadingMore || !commentsResult.cursor}
+									onClick={() =>
+										commentsResult.cursor && loadComments(commentsResult.cursor)
+									}
 								>
-									<button
-										type="button"
-										disabled={commentsLoadingMore}
-										onClick={() =>
-											commentsResult.cursor &&
-											loadComments(commentsResult.cursor)
-										}
-									>
-										{commentsLoadingMore ? (
-											<span class="spinner" />
-										) : (
-											"Load more"
-										)}
-									</button>
-								</div>
-							)}
+									{commentsLoadingMore ? (
+										<span class="spinner" />
+									) : commentsResult.cursor ? (
+										"Load more"
+									) : (
+										"All comments loaded"
+									)}
+								</button>
+							</div>
 						</div>
 					)}
 				</div>

@@ -124,10 +124,11 @@ function buildServer(): McpServer {
 		},
 		async ({ url, cursor }) => {
 			try {
-				const { parent, replies, cursor: next } = await fetchComments(
-					url,
-					cursor,
-				);
+				const {
+					parent,
+					replies,
+					cursor: next,
+				} = await fetchComments(url, cursor);
 				const md = commentsToMarkdown(parent, replies);
 				const footer = next ? `\n\n<!-- next_cursor: ${next} -->\n` : "";
 				return { content: [{ type: "text", text: md + footer }] };

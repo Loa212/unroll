@@ -507,11 +507,7 @@ function App() {
 											JSON
 										</button>
 									</div>
-									<button
-										class="ghost"
-										type="button"
-										onClick={copyComments}
-									>
+									<button class="ghost" type="button" onClick={copyComments}>
 										<CopyIcon /> {commentsCopied ? "Copied" : "Copy"}
 									</button>
 									<button

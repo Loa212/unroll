@@ -1,7 +1,7 @@
 import { render } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { FxTwitterTweet } from "../lib/fxtwitter";
-import { commentsToMarkdown } from "../lib/markdown";
+import { commentsToMarkdown, threadToMarkdown } from "../lib/markdown";
 
 type RateInfo = {
 	limit: number;
@@ -12,10 +12,8 @@ type RateInfo = {
 type Format = "markdown" | "json";
 
 type ThreadResult = {
-	content?: string;
-	tweets?: unknown[];
-	tweetCount?: number;
-	count?: number;
+	tweets: FxTwitterTweet[];
+	count: number;
 	author?: { screen_name?: string; name?: string };
 };
 
@@ -128,19 +126,14 @@ function App() {
 		const q = new URLSearchParams(window.location.search).get("q");
 		if (q?.trim()) {
 			setUrl(q);
-			void submit(undefined, undefined, q);
+			void submit(undefined, q);
 		}
 	}, []);
 
-	const submit = async (
-		e?: Event,
-		overrideFormat?: Format,
-		overrideUrl?: string,
-	) => {
+	const submit = async (e?: Event, overrideUrl?: string) => {
 		e?.preventDefault();
 		const trimmed = (overrideUrl ?? url).trim();
 		if (!trimmed) return;
-		const activeFormat = overrideFormat ?? format;
 
 		// Reflect the search in the URL so results are shareable / bookmarkable.
 		const qs = new URLSearchParams({ q: trimmed }).toString();
@@ -159,7 +152,7 @@ function App() {
 		try {
 			const params = new URLSearchParams({
 				url: trimmed,
-				format: activeFormat,
+				format: "json",
 			});
 			const res = await fetch(`/api/thread?${params.toString()}`, {
 				headers: { Accept: "application/json" },
@@ -203,12 +196,12 @@ function App() {
 
 	const outputText = (() => {
 		if (!result) return "";
-		if (format === "markdown") return result.content ?? "";
+		if (format === "markdown") return threadToMarkdown(result.tweets);
 		return JSON.stringify(result, null, 2);
 	})();
 
 	const handle = result?.author?.screen_name;
-	const tweetCount = result?.tweetCount ?? result?.count ?? 0;
+	const tweetCount = result?.count ?? 0;
 
 	const copy = async () => {
 		if (!outputText) return;
@@ -435,20 +428,14 @@ function App() {
 								<button
 									type="button"
 									class={format === "markdown" ? "active" : ""}
-									onClick={() => {
-										setFormat("markdown");
-										if (url.trim()) submit(undefined, "markdown");
-									}}
+									onClick={() => setFormat("markdown")}
 								>
 									Markdown
 								</button>
 								<button
 									type="button"
 									class={format === "json" ? "active" : ""}
-									onClick={() => {
-										setFormat("json");
-										if (url.trim()) submit(undefined, "json");
-									}}
+									onClick={() => setFormat("json")}
 								>
 									JSON
 								</button>

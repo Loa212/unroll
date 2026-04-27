@@ -83,3 +83,34 @@ export function threadToMarkdown(tweets: FxTwitterTweet[]): string {
 export function singleTweetToMarkdown(tweet: FxTwitterTweet): string {
 	return threadToMarkdown([tweet]);
 }
+
+function replyToSection(reply: FxTwitterTweet): string {
+	const head = `### @${reply.author.screen_name} · ${formatDate(reply.created_at)}`;
+	return `${head}\n\n${tweetToSection(reply)}`;
+}
+
+export function commentsToMarkdown(
+	parent: FxTwitterTweet,
+	replies: FxTwitterTweet[],
+): string {
+	const quoted = tweetBody(parent)
+		.split("\n")
+		.map((line) => `> ${line}`)
+		.join("\n");
+	const header = [
+		`# Comments on tweet by @${parent.author.screen_name}`,
+		"",
+		`**${parent.author.name}** · ${formatDate(parent.created_at)}`,
+		"",
+		`Source: [${parent.url}](${parent.url})`,
+		"",
+		quoted,
+		"",
+		`${replies.length} repl${replies.length === 1 ? "y" : "ies"}`,
+		"",
+		"---",
+		"",
+	].join("\n");
+	if (replies.length === 0) return `${header}_No replies yet._\n`;
+	return `${header}${replies.map(replyToSection).join("\n\n---\n\n")}\n`;
+}

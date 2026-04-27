@@ -91,6 +91,23 @@ export type FxTwitterResponse = {
 	tweet: FxTwitterTweet;
 };
 
+export type FxTwitterTombstone = {
+	tombstone: { text?: string; reason?: string };
+};
+export type FxTwitterReply = FxTwitterTweet | FxTwitterTombstone;
+export const isTombstone = (r: FxTwitterReply): r is FxTwitterTombstone =>
+	"tombstone" in r;
+
+export type FxTwitterConversationResponse = {
+	code: number;
+	message?: string;
+	status: FxTwitterTweet;
+	thread?: FxTwitterReply[];
+	replies: FxTwitterReply[];
+	author?: FxTwitterAuthor;
+	cursor?: { bottom?: string | null };
+};
+
 export class FxTwitterError extends Error {
 	constructor(
 		public status: number,
@@ -123,5 +140,50 @@ export async function fetchTweet(id: string): Promise<FxTwitterResponse> {
 	if (!body.tweet) {
 		throw new FxTwitterError(502, "FxTwitter returned no tweet payload");
 	}
+	return body;
+}
+
+// Comments are dynamic (rankings shift, new replies arrive), so we don't reuse
+// the immutable tweet_cache SQLite store. A tiny in-memory TTL map is enough
+// to absorb spam-clicks of "Load more" without hammering FxTwitter.
+const convCache = new Map<
+	string,
+	{ at: number; value: FxTwitterConversationResponse }
+>();
+const CONV_TTL_MS = 60_000;
+
+export async function fetchConversation(
+	id: string,
+	cursor?: string,
+): Promise<FxTwitterConversationResponse> {
+	const key = `${id}:${cursor ?? ""}`;
+	const hit = convCache.get(key);
+	if (hit && Date.now() - hit.at < CONV_TTL_MS) return hit.value;
+
+	const url = new URL(`https://api.fxtwitter.com/2/conversation/${id}`);
+	if (cursor) url.searchParams.set("cursor", cursor);
+	const res = await fetch(url, {
+		headers: {
+			"User-Agent": env.USER_AGENT,
+			Accept: "application/json",
+		},
+	});
+
+	if (res.status === 404) {
+		throw new FxTwitterError(404, "Tweet not found");
+	}
+	if (!res.ok) {
+		throw new FxTwitterError(
+			res.status,
+			`FxTwitter responded with ${res.status}`,
+		);
+	}
+
+	const body = (await res.json()) as FxTwitterConversationResponse;
+	if (!body?.status) {
+		throw new FxTwitterError(502, "FxTwitter returned no parent status");
+	}
+	if (!Array.isArray(body.replies)) body.replies = [];
+	convCache.set(key, { at: Date.now(), value: body });
 	return body;
 }

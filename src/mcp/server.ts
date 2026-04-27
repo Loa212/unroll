@@ -3,9 +3,13 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { FxTwitterError } from "../lib/fxtwitter";
-import { singleTweetToMarkdown, threadToMarkdown } from "../lib/markdown";
+import {
+	commentsToMarkdown,
+	singleTweetToMarkdown,
+	threadToMarkdown,
+} from "../lib/markdown";
 import { clientIp, rateLimit, rateLimitHeaders } from "../lib/rate-limit";
-import { fetchSingle, unrollThread } from "../lib/unroll";
+import { fetchComments, fetchSingle, unrollThread } from "../lib/unroll";
 
 const UNROLL_THREAD_DESCRIPTION = [
 	"Unroll an X/Twitter thread into clean markdown.",
@@ -27,6 +31,20 @@ const FETCH_TWEET_DESCRIPTION = [
 	"verbatim) and you already know you do not want surrounding replies.",
 	"",
 	"Prefer unroll_thread if you want the full thread.",
+].join("\n");
+
+const FETCH_COMMENTS_DESCRIPTION = [
+	"Fetch the top replies to an X/Twitter tweet as markdown.",
+	"",
+	"Given a tweet URL, returns the parent tweet plus its top replies (ranked by",
+	"likes) in a single markdown document. Use this when the user asks what",
+	"people are saying about a tweet, wants to see reactions, or wants discussion",
+	"context. Tombstoned (deleted/private) replies are filtered out.",
+	"",
+	"To paginate, pass the `cursor` returned in the previous response's footer",
+	"(`<!-- next_cursor: ... -->`). Omit `cursor` to fetch the first page.",
+	"",
+	"Prefer unroll_thread when the user wants the author's own thread, not replies.",
 ].join("\n");
 
 function toolError(err: unknown): CallToolResult {
@@ -83,6 +101,36 @@ function buildServer(): McpServer {
 				return {
 					content: [{ type: "text", text: singleTweetToMarkdown(tweet) }],
 				};
+			} catch (err) {
+				return toolError(err);
+			}
+		},
+	);
+
+	server.registerTool(
+		"fetch_comments",
+		{
+			description: FETCH_COMMENTS_DESCRIPTION,
+			inputSchema: {
+				url: z
+					.string()
+					.min(1)
+					.describe("URL of the tweet whose replies to fetch."),
+				cursor: z
+					.string()
+					.optional()
+					.describe("Pagination cursor from a prior response."),
+			},
+		},
+		async ({ url, cursor }) => {
+			try {
+				const { parent, replies, cursor: next } = await fetchComments(
+					url,
+					cursor,
+				);
+				const md = commentsToMarkdown(parent, replies);
+				const footer = next ? `\n\n<!-- next_cursor: ${next} -->\n` : "";
+				return { content: [{ type: "text", text: md + footer }] };
 			} catch (err) {
 				return toolError(err);
 			}
